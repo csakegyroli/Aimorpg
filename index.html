@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#101a20">
+<meta name="description" content="AIMORPG – mobilra optimalizált 3D technológiai prototípus">
+<title>AIMORPG – 3D technológiai prototípus</title>
+<style>
+:root{color-scheme:dark;--gold:#e8c887;--gold2:#b88a4b;--ink:#10191d;--panel:rgba(13,22,27,.82);--line:rgba(232,200,135,.28);--muted:#b5c0bc}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#111c22;font-family:Georgia,'Times New Roman',serif;color:#f2ead9;touch-action:none;overscroll-behavior:none}
+#game{position:fixed;inset:0;width:100%;height:100%;display:block;outline:none}
+#vignette{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 48%,rgba(5,10,13,.35) 100%);z-index:2}
+#hud{position:fixed;inset:0;z-index:5;pointer-events:none;padding:calc(env(safe-area-inset-top) + 10px) calc(env(safe-area-inset-right) + 12px) calc(env(safe-area-inset-bottom) + 12px) calc(env(safe-area-inset-left) + 12px)}
+.topbar{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.brand{background:linear-gradient(135deg,rgba(14,24,29,.9),rgba(28,39,40,.78));border:1px solid var(--line);border-radius:12px;padding:9px 12px;box-shadow:0 8px 26px #0005;max-width:min(72vw,330px)}
+.brand .name{font-size:clamp(14px,3.6vw,20px);letter-spacing:.16em;color:var(--gold);font-weight:bold}
+.brand .sub{font:10px/1.4 system-ui,sans-serif;color:#c5c9bf;letter-spacing:.14em;text-transform:uppercase;margin-top:2px}
+.status{background:rgba(13,22,27,.76);border:1px solid var(--line);border-radius:10px;padding:7px 10px;text-align:right;font:10px/1.45 system-ui,sans-serif;color:#d2d9d2;letter-spacing:.05em}
+.status strong{color:#9fd6b1;font-weight:700}
+#hint{position:absolute;left:50%;top:calc(env(safe-area-inset-top) + 74px);transform:translateX(-50%);max-width:80vw;text-align:center;background:rgba(12,19,22,.66);border:1px solid rgba(232,200,135,.18);border-radius:20px;padding:6px 12px;color:#eadfca;font:11px/1.25 system-ui,sans-serif;white-space:nowrap;transition:opacity .25s;box-shadow:0 5px 18px #0003}
+#controls{position:absolute;inset:0;pointer-events:none}
+#joystick{position:absolute;left:calc(env(safe-area-inset-left) + 22px);bottom:calc(env(safe-area-inset-bottom) + 24px);width:126px;height:126px;border-radius:50%;border:1px solid rgba(244,222,177,.4);background:radial-gradient(circle,rgba(255,255,255,.09),rgba(10,18,22,.35));box-shadow:inset 0 0 20px #0005,0 8px 24px #0004;pointer-events:auto;touch-action:none}
+#stick{position:absolute;left:50%;top:50%;width:54px;height:54px;transform:translate(-50%,-50%);border-radius:50%;border:1px solid rgba(255,235,192,.75);background:linear-gradient(145deg,rgba(237,214,165,.78),rgba(134,99,57,.72));box-shadow:0 4px 15px #0007,inset 0 1px 3px #fff8}
+.action-stack{position:absolute;right:calc(env(safe-area-inset-right) + 19px);bottom:calc(env(safe-area-inset-bottom) + 27px);display:flex;flex-direction:column;align-items:flex-end;gap:11px;pointer-events:auto}
+.action{border:1px solid rgba(240,214,164,.55);color:#fff3d8;background:linear-gradient(145deg,rgba(52,65,62,.94),rgba(18,28,30,.94));border-radius:50%;width:66px;height:66px;display:grid;place-items:center;box-shadow:0 5px 18px #0006;touch-action:manipulation;font:10px/1.1 system-ui,sans-serif;letter-spacing:.05em;text-align:center}
+.action:active{transform:scale(.96);background:linear-gradient(145deg,#80633e,#293a39)}
+#talk{width:84px;height:48px;border-radius:24px;display:none;font-weight:bold;color:#f5e2b7;background:linear-gradient(145deg,#80633e,#3c3429)}
+#talk.visible{display:grid}
+#look{position:absolute;right:0;top:25%;width:58%;height:48%;pointer-events:none}
+#dialog{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom) + 155px);transform:translateX(-50%);width:min(430px,calc(100% - 34px));padding:13px 15px;background:linear-gradient(145deg,rgba(16,26,29,.96),rgba(27,34,32,.95));border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 38px #0008;display:none;pointer-events:auto}
+#dialog.open{display:block}
+#dialog h3{margin:0 0 5px;color:var(--gold);font-size:17px}
+#dialog p{margin:0;color:#e4e1d7;font:13px/1.45 system-ui,sans-serif}
+#dialog button{margin-top:10px;border:1px solid var(--line);background:#34423d;color:#f7e6c4;border-radius:9px;padding:7px 12px;font:12px system-ui,sans-serif}
+#footer{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom) + 9px);transform:translateX(-50%);font:9px system-ui,sans-serif;letter-spacing:.12em;color:rgba(244,235,215,.65);white-space:nowrap;text-shadow:0 2px 5px #000}
+#start,#error{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(ellipse at 50% 35%,#31474a,#111a1f 72%)}
+.start-card{width:min(440px,100%);padding:25px 22px;border:1px solid var(--line);border-radius:18px;background:rgba(10,19,23,.82);box-shadow:0 20px 60px #0009;text-align:center}
+.start-mark{font-size:12px;letter-spacing:.22em;color:var(--gold);text-transform:uppercase}
+.start-card h1{font-size:clamp(26px,7vw,38px);margin:12px 0 7px;color:#f2e5ca;font-weight:normal}
+.start-card p{font:13px/1.55 system-ui,sans-serif;color:#cbd0c7;margin:8px 0}
+.primary{margin-top:14px;padding:13px 22px;width:100%;border-radius:11px;border:1px solid #e4c58c;background:linear-gradient(135deg,#9a7442,#55452e);color:#fff4dc;font:bold 14px system-ui,sans-serif;letter-spacing:.08em}
+.small{font:11px/1.5 system-ui,sans-serif;color:#aebbb5!important}
+#error{display:none;background:rgba(10,16,20,.96);z-index:30}
+#error .start-card{border-color:#a86c56}
+#error h1{color:#e9b39e}
+@media (orientation:portrait){#hint{top:calc(env(safe-area-inset-top) + 68px)}#joystick{width:112px;height:112px;left:calc(env(safe-area-inset-left) + 15px);bottom:calc(env(safe-area-inset-bottom) + 18px)}#stick{width:48px;height:48px}.action-stack{right:calc(env(safe-area-inset-right) + 14px);bottom:calc(env(safe-area-inset-bottom) + 20px)}#dialog{bottom:calc(env(safe-area-inset-bottom) + 142px)}}
+@media (max-height:420px){.brand{padding:6px 9px}.brand .name{font-size:14px}#hint{top:calc(env(safe-area-inset-top) + 58px)}#joystick{width:100px;height:100px;bottom:calc(env(safe-area-inset-bottom) + 10px)}#stick{width:43px;height:43px}.action-stack{bottom:calc(env(safe-area-inset-bottom) + 12px)}.action{width:56px;height:56px}#dialog{bottom:calc(env(safe-area-inset-bottom) + 122px)}}
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js"
+  }
+}
+</script>
+</head>
+<body>
+<canvas id="game" aria-label="AIMORPG háromdimenziós város prototípus"></canvas>
+<div id="vignette"></div>
+<div id="hud">
+  <div class="topbar">
+    <div class="brand"><div class="name">AIMORPG</div><div class="sub">3D technológiai prototípus · 0.1</div></div>
+    <div class="status"><strong>WEBGL 2</strong><br><span id="quality">MOBIL · ADAPTÍV</span></div>
+  </div>
+  <div id="hint">Fedezd fel a piacteret. Közelíts egy lakóhoz!</div>
+  <div id="controls">
+    <div id="joystick" aria-label="Mozgás joystick"><div id="stick"></div></div>
+    <div id="look"></div>
+    <div class="action-stack">
+      <button id="talk" class="action" type="button">BESZÉLGETÉS</button>
+      <button id="interact" class="action" type="button">AKCIÓ</button>
+    </div>
+  </div>
+  <div id="dialog"><h3 id="npcName">NPC</h3><p id="npcText"></p><button id="closeDialog" type="button">Bezárás</button></div>
+  <div id="footer">A BAYVIEW-HELYETT MOST A KIRÁLYI PIACTÉR VÁR</div>
+</div>
+<div id="start">
+  <div class="start-card">
+    <div class="start-mark">A living world · browser prototype</div>
+    <h1>A Királyi Piactér</h1>
+    <p>Az AIMORPG első mobilbarát 3D technológiai prototípusa.</p>
+    <p class="small">Érintőjoystickkal mozoghatsz, a képernyő jobb oldalán húzva forgathatod a kamerát. Közelíts egy NPC-hez, majd válaszd a Beszélgetés gombot.</p>
+    <button id="startButton" class="primary" type="button">BELÉPÉS A VÁROSBA</button>
+    <p class="small">Első indításkor internetkapcsolat szükséges a Three.js grafikai könyvtár letöltéséhez.</p>
+  </div>
+</div>
+<div id="error">
+  <div class="start-card">
+    <div class="start-mark">AIMORPG · 3D prototípus</div>
+    <h1>Nem indítható el</h1>
+    <p id="errorText">A böngésző nem tudta létrehozni a WebGL 2 grafikai környezetet.</p>
+    <p class="small">Próbáld meg a legfrissebb Safari vagy Chrome böngészőben, és ellenőrizd, hogy a hardveres grafikai gyorsítás elérhető-e.</p>
+  </div>
+</div>
+<script type="module">
+import * as THREE from 'three';
+
+const canvas = document.querySelector('#game');
+const startScreen = document.querySelector('#start');
+const errorScreen = document.querySelector('#error');
+const errorText = document.querySelector('#errorText');
+const hint = document.querySelector('#hint');
+const dialog = document.querySelector('#dialog');
+const npcName = document.querySelector('#npcName');
+const npcText = document.querySelector('#npcText');
+const talkButton = document.querySelector('#talk');
+const joystick = document.querySelector('#joystick');
+const stick = document.querySelector('#stick');
+const interactButton = document.querySelector('#interact');
+
+// A CDN/import failure should show a useful message instead of leaving a blank screen.
+window.addEventListener('error', (event) => {
+  if (event.message && /module|import|three/i.test(event.message)) {
+    errorText.textContent = 'Nem sikerült betölteni a Three.js modult. Ellenőrizd az internetkapcsolatot, majd töltsd újra az oldalt.';
+    errorScreen.style.display = 'flex';
+  }
+});
+window.addEventListener('unhandledrejection', () => {
+  errorText.textContent = 'A grafikai könyvtár betöltése nem sikerült. Ellenőrizd az internetkapcsolatot, majd töltsd újra az oldalt.';
+  errorScreen.style.display = 'flex';
+});
+
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({canvas, antialias:false, alpha:false, powerPreference:'high-performance', stencil:false, depth:true});
+} catch (err) {
+  errorText.textContent = 'A WebGL 2 nem érhető el ezen a böngészőn vagy eszközön. Részlet: ' + (err?.message || 'ismeretlen hiba');
+  errorScreen.style.display = 'flex';
+  throw err;
+}
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+renderer.setSize(window.innerWidth, window.innerHeight, false);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.18;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x9eb9c1);
+scene.fog = new THREE.Fog(0x9eb9c1, 32, 78);
+const camera = new THREE.PerspectiveCamera(56, window.innerWidth/window.innerHeight, 0.1, 130);
+const clock = new THREE.Clock();
+
+scene.add(new THREE.HemisphereLight(0xd7e8e2, 0x635747, 2.0));
+const sun = new THREE.DirectionalLight(0xffe0b2, 2.25);
+sun.position.set(-18, 28, 13);
+sun.castShadow = true;
+sun.shadow.mapSize.set(768,768);
+sun.shadow.camera.left=-30; sun.shadow.camera.right=30; sun.shadow.camera.top=30; sun.shadow.camera.bottom=-30;
+sun.shadow.bias=-0.00025;
+scene.add(sun);
+
+const mats = {};
+function mat(name,color,roughness=0.88,extra={}) { if(!mats[name]) mats[name]=new THREE.MeshStandardMaterial({color,roughness,...extra}); return mats[name]; }
+const stone = mat('stone',0x777d76), lightStone=mat('lightStone',0xa79f89), darkStone=mat('darkStone',0x414b48), grass=mat('grass',0x566f56), wallA=mat('wallA',0xb59a75), wallB=mat('wallB',0x9d826a), wallC=mat('wallC',0xc0ad8b), roofA=mat('roofA',0x60483e), roofB=mat('roofB',0x485b5b), wood=mat('wood',0x594331), woodLight=mat('woodLight',0x8b6945), windowMat=mat('window',0x30434a,0.7,{metalness:0.05}), gold=mat('gold',0xb99555,0.45,{metalness:0.55}), water=mat('water',0x4b9a9b,0.28,{metalness:0.18}), leaf=mat('leaf',0x4c694c), leaf2=mat('leaf2',0x71805a), clothRed=mat('clothRed',0x8b3f38), clothGold=mat('clothGold',0xc19b58), playerMat=mat('playerMat',0x405f67), skin=mat('skin',0xc58f6a), leather=mat('leather',0x50372e), black=mat('black',0x202b2b);
+
+function box(parent,x,y,z,sx,sy,sz,material,cast=true,receive=true){const m=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),material);m.position.set(x,y,z);m.castShadow=cast;m.receiveShadow=receive;parent.add(m);return m;}
+function cylinder(parent,x,y,z,rTop,rBottom,h,material,segments=8){const m=new THREE.Mesh(new THREE.CylinderGeometry(rTop,rBottom,h,segments),material);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;}
+function sphere(parent,x,y,z,r,material,segments=10){const m=new THREE.Mesh(new THREE.SphereGeometry(r,segments,8),material);m.position.set(x,y,z);m.castShadow=true;parent.add(m);return m;}
+
+// Ground and paved royal square
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(100,100),grass); ground.rotation.x=-Math.PI/2; ground.position.y=-0.08; ground.receiveShadow=true; scene.add(ground);
+box(scene,0,0.02,0,31,0.16,31,stone,false,true);
+// Procedural cobbles via InstancedMesh for mobile-friendly draw calls
+const cobbleGeo = new THREE.BoxGeometry(1.35,0.075,1.15);
+const cobbleMats = [mat('c1',0x85877d),mat('c2',0x777a72),mat('c3',0x969284),mat('c4',0x6e7771)];
+const count=18*18; const cobbles=new THREE.InstancedMesh(cobbleGeo,cobbleMats[0],count); const dummy=new THREE.Object3D(); let idx=0;
+for(let x=-12;x<=12;x+=1.42){for(let z=-12;z<=12;z+=1.42){if(Math.abs(x)<2.3&&Math.abs(z)<2.3) continue;dummy.position.set(x,0.13+Math.random()*0.012,z);dummy.rotation.y=(Math.random()-.5)*.09;dummy.scale.set(.9+Math.random()*.14,1,.9+Math.random()*.14);dummy.updateMatrix();cobbles.setMatrixAt(idx,dummy.matrix);cobbles.setColorAt(idx,new THREE.Color([0x85877d,0x777a72,0x969284,0x6e7771][Math.floor(Math.random()*4)]));idx++;}}
+cobbles.count=idx;cobbles.castShadow=false;cobbles.receiveShadow=true;scene.add(cobbles);
+// Cross streets / paths
+box(scene,0,0.025,-20,7,0.13,25,lightStone,false,true);
+box(scene,20,0.025,0,25,0.13,7,lightStone,false,true);
+
+// Building construction: compact medieval houses with facades, windows, doors and roofs.
+function makeBuilding(x,z,w,d,h,wallMat,roofMat,rotation=0){
+  const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=rotation;scene.add(g);
+  box(g,0,h/2,0,w,h,d,wallMat,true,true);
+  // roof silhouette
+  const roof=new THREE.Mesh(new THREE.ConeGeometry(Math.max(w,d)*0.78,h*0.72,4),roofMat);roof.position.y=h+h*0.28;roof.rotation.y=Math.PI/4;roof.castShadow=true;roof.receiveShadow=true;g.add(roof);
+  // eaves
+  box(g,0,h+0.04,0,w+0.42,0.18,d+0.42,woodLight);
+  // front facade details
+  const front=d/2+0.025;
+  box(g,0,0.16,front,1.35,2.05,0.16,wood);
+  box(g,0,1.13,front+0.095,0.92,0.13,0.04,gold,false,false);
+  for(const wx of [-w*.29,w*.29]){
+    box(g,wx,h*.55,front+0.04,0.82,1.05,0.13,wood);
+    box(g,wx,h*.55,front+0.12,0.57,0.78,0.04,windowMat,false,false);
+    box(g,wx,h*.55,front+0.15,0.07,0.82,0.04,woodLight,false,false);
+    box(g,wx,h*.55,front+0.15,0.62,0.07,woodLight,false,false);
+  }
+  for(let i=-1;i<=1;i++) box(g,i*w*.23,h*.31,front+0.11,0.12,h*.58,0.08,woodLight,false,false);
+  return g;
+}
+makeBuilding(-15,-14,10,9,6.8,wallA,roofA,-0.1);
+makeBuilding(0,-18,10,8,7.7,wallC,roofB,0.08);
+makeBuilding(15,-14,9,9,6.3,wallB,roofA,0.08);
+makeBuilding(-17,10,8,9,6,wallC,roofB,0.12);
+makeBuilding(17,10,9,9,6.6,wallA,roofA,-0.12);
+makeBuilding(-14,25,10,7,5.7,wallB,roofB,0);
+makeBuilding(14,25,10,7,5.7,wallC,roofA,0);
+
+// Royal gate to the north of the square
+const gate=new THREE.Group();gate.position.set(0,0,-25);scene.add(gate);
+box(gate,-4,3.1,0,2.3,6.2,2.3,lightStone);box(gate,4,3.1,0,2.3,6.2,2.3,lightStone);box(gate,0,6.1,0,10.3,1.5,2.5,darkStone);
+box(gate,0,2.9,0,5.4,5.7,2.55,wood,false,true);box(gate,0,2.9,1.33,4.4,5.1,0.08,darkStone,false,false);
+for(const x of [-4,4]){box(gate,x,6.7,0,2.5,.28,2.7,gold);}
+
+// Fountain at the center
+const fountain=new THREE.Group();fountain.position.set(0,0.14,-1.2);scene.add(fountain);
+cylinder(fountain,0,.2,0,2.5,2.7,.42,lightStone,16);
+cylinder(fountain,0,.48,0,2.05,2.25,.22,stone,16);
+cylinder(fountain,0,.72,0,1.48,1.58,.3,water,16);
+cylinder(fountain,0,1.05,0,.55,.7,.48,lightStone,12);
+sphere(fountain,0,1.52,0,.3,water,12);
+for(let i=0;i<4;i++){const a=i*Math.PI/2;const s=sphere(fountain,Math.cos(a)*1.65,.92,Math.sin(a)*1.65,.12,gold,8);s.scale.y=1.7;}
+
+// Market stalls
+function makeStall(x,z,colorMat){const g=new THREE.Group();g.position.set(x,0,z);scene.add(g);for(const dx of [-1.65,1.65])for(const dz of [-.95,.95])box(g,dx,1.35,dz,.16,2.7,.16,wood);box(g,0,1.35,0,3.7,.18,2.25,woodLight);const canopy=new THREE.Mesh(new THREE.BoxGeometry(3.9,.22,2.55),colorMat);canopy.position.y=2.85;canopy.castShadow=true;g.add(canopy);for(let i=-1;i<=1;i++){box(g,i*1.1,2.58,0,.08,.46,2.5,woodLight,false,false);}box(g,0,.85,1.06,3.1,.8,.12,wood);for(let i=0;i<5;i++){const crate=box(g,-1.2+i*.6,.55,.2,.48,.46,.48,i%2?woodLight:wood);crate.rotation.y=(i%2)*.13;}return g;}
+makeStall(-7,5,clothRed);makeStall(7,5,clothGold);
+
+// Trees and shrubs
+function makeTree(x,z,scale=1){const g=new THREE.Group();g.position.set(x,0,z);g.scale.setScalar(scale);scene.add(g);cylinder(g,0,1.1,0,.25,.36,2.2,wood,7);const c1=new THREE.Mesh(new THREE.ConeGeometry(1.35,2.5,8),leaf);c1.position.y=2.7;c1.castShadow=true;g.add(c1);const c2=new THREE.Mesh(new THREE.ConeGeometry(1.05,2.1,8),leaf2);c2.position.y=3.75;c2.castShadow=true;g.add(c2);return g;}
+makeTree(-22,-5,1.2);makeTree(22,-5,1.2);makeTree(-22,18,1.1);makeTree(22,18,1.1);makeTree(-10,-23,.85);makeTree(10,-23,.85);
+
+// Lantern posts
+const lanternLights=[];
+function makeLantern(x,z){const g=new THREE.Group();g.position.set(x,0,z);scene.add(g);cylinder(g,0,1.45,0,.09,.13,2.9,wood,7);box(g,0,2.95,0,.7,.12,.7,woodLight);box(g,0,3.35,0,.48,.65,.48,darkStone);sphere(g,0,3.35,0,.19,mat('glow'+x+z,0xffcb7a,.25,{emissive:0xffa63a,emissiveIntensity:1.2}),8);const light=new THREE.PointLight(0xffbd71,1.5,8,2);light.position.set(x,3.4,z);scene.add(light);lanternLights.push(light);}
+makeLantern(-10,-7);makeLantern(10,-7);makeLantern(-10,11);makeLantern(10,11);
+
+// Player and NPCs made from simple, lightweight meshes.
+function makeCharacter(tunicColor,accentColor,player=false){
+  const root=new THREE.Group();
+  const tunic=mat('tunic'+tunicColor,tunicColor),accent=mat('accent'+accentColor,accentColor);
+  const body=box(root,0,1.18,0,.75,1.05,.42,tunic);body.castShadow=true;
+  const belt=box(root,0,.83,0,.79,.13,.46,leather,false,false);
+  const head=sphere(root,0,2.02,0,.32,skin,12);head.scale.set(.82,1.08,.82);
+  const hair=sphere(root,0,2.22,-.035,.32,accent,10);hair.scale.set(.9,.55,.9);
+  const leftArm=new THREE.Group();leftArm.position.set(-.48,1.57,0);root.add(leftArm);box(leftArm,0,-.32,0,.22,.72,.24,tunic);sphere(leftArm,0,-.7,.02,.13,skin,8);
+  const rightArm=new THREE.Group();rightArm.position.set(.48,1.57,0);root.add(rightArm);box(rightArm,0,-.32,0,.22,.72,.24,tunic);sphere(rightArm,0,-.7,.02,.13,skin,8);
+  const leftLeg=new THREE.Group();leftLeg.position.set(-.2,.68,0);root.add(leftLeg);box(leftLeg,0,-.3,0,.27,.72,.3,leather);
+  const rightLeg=new THREE.Group();rightLeg.position.set(.2,.68,0);root.add(rightLeg);box(rightLeg,0,-.3,0,.27,.72,.3,leather);
+  const bootL=box(leftLeg,0,-.62,.1,.32,.18,.48,black);const bootR=box(rightLeg,0,-.62,.1,.32,.18,.48,black);
+  root.userData={leftArm,rightArm,leftLeg,rightLeg,body,head,player};
+  return root;
+}
+const player=makeCharacter(0x3f6770,0x283b3e,true);player.position.set(0,0,9);scene.add(player);
+const npcData=[
+ {name:'Runa',role:'Kereskedő',x:-4.8,z:2.2,color:0x8b6346,accent:0x46352b,text:'Üdvözöllek a Királyi Piactéren! Friss fűszerek, különleges kelmék és távoli vidékekről érkező portékák várják az utazókat. Figyeld a piacot: a készletek idővel változnak.'},
+ {name:'Arven',role:'Városőr',x:4.7,z:-5.1,color:0x526b55,accent:0x303c34,text:'A palota felé vezető kapu ma nyitva áll, de az északi úton éjjelente furcsa fényeket láttak. Ha arra indulsz, légy óvatos.'},
+ {name:'Eldric',role:'Kovácsinas',x:8.2,z:1.4,color:0x6e596e,accent:0x302a32,text:'A mesterem különös ezüstöt talált a kikötőből érkező szállítmányban. Azt mondja, nem közönséges érc. Talán a palotában többet tudnak róla.'}
+];
+const npcs=[];
+for(const data of npcData){const model=makeCharacter(data.color,data.accent);model.position.set(data.x,0,data.z);scene.add(model);const labelCanvas=document.createElement('canvas');labelCanvas.width=256;labelCanvas.height=80;const ctx=labelCanvas.getContext('2d');ctx.fillStyle='rgba(12,20,22,.78)';ctx.roundRect(4,5,248,68,18);ctx.fill();ctx.strokeStyle='rgba(232,200,135,.8)';ctx.lineWidth=3;ctx.stroke();ctx.font='bold 28px Georgia';ctx.fillStyle='#e8c887';ctx.textAlign='center';ctx.fillText(data.name,128,34);ctx.font='20px Arial';ctx.fillStyle='#d6ded6';ctx.fillText(data.role,128,58);const tex=new THREE.CanvasTexture(labelCanvas);tex.colorSpace=THREE.SRGBColorSpace;const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthWrite:false}));sprite.scale.set(2.8,.88,1);sprite.position.set(0,3.1,0);model.add(sprite);npcs.push({...data,model,baseX:data.x,baseZ:data.z,phase:Math.random()*6});}
+
+// Decorative banners and small props
+function banner(x,z,color){const g=new THREE.Group();g.position.set(x,0,z);scene.add(g);cylinder(g,0,2,0,.05,.07,4,wood,6);box(g,.48,3,0,.92,1.35,.07,color);const tip=new THREE.Mesh(new THREE.ConeGeometry(.34,.5,4),color);tip.position.set(.48,2.08,.01);tip.rotation.z=Math.PI;g.add(tip);}
+banner(-11,0,clothRed);banner(11,0,clothGold);
+for(let i=0;i<12;i++){const a=i/12*Math.PI*2;const x=Math.cos(a)*3.5,z=-1.2+Math.sin(a)*3.5;const p=sphere(scene,x,.32,z,.13,gold,7);p.scale.y=.45;}
+
+// Camera and controls
+let cameraYaw=0, cameraHeight=6.8, cameraDistance=11.5;
+const cameraTarget=new THREE.Vector3();
+const cameraDesired=new THREE.Vector3();
+const input={x:0,y:0,keys:{},drag:false,dragMoved:false,lastX:0,lastY:0};
+let nearest=null, selectedNpc=null, gameStarted=false, walkingTime=0, nearestRefresh=0;
+function updateCamera(dt){const horizontal=Math.sqrt(Math.max(25,cameraDistance*cameraDistance-cameraHeight*cameraHeight));cameraTarget.set(player.position.x,player.position.y+1.25,player.position.z);cameraDesired.set(player.position.x+Math.sin(cameraYaw)*horizontal,camera.position.y*0+player.position.y+cameraHeight,player.position.z+Math.cos(cameraYaw)*horizontal);const smooth=1-Math.pow(.001,dt);camera.position.lerp(cameraDesired,smooth);const look=new THREE.Vector3(player.position.x,player.position.y+1.35,player.position.z);camera.lookAt(look);}
+function openNpc(data){selectedNpc=data;npcName.textContent=data.name+' · '+data.role;npcText.textContent=data.text;dialog.classList.add('open');}
+function closeNpc(){dialog.classList.remove('open');selectedNpc=null;}
+document.querySelector('#closeDialog').addEventListener('click',closeNpc);
+function updateNearest(){let best=null,bestDist=99;for(const n of npcs){const d=player.position.distanceTo(n.model.position);if(d<bestDist){bestDist=d;best=n;}}nearest=bestDist<6.2?best:null;talkButton.classList.toggle('visible',!!nearest);if(nearest){hint.textContent=nearest.name+' a közelben · Beszélgetéshez koppints a gombra';hint.style.opacity='1';}else{hint.textContent='Fedezd fel a piacteret. Közelíts egy lakóhoz!';hint.style.opacity='.78';}}
+function interact(){if(nearest){openNpc(nearest);}else{hint.textContent='Nincs senki a közeledben. Keress egy NPC-t!';hint.style.opacity='1';setTimeout(()=>{if(!nearest)hint.style.opacity='.72';},1600);}}
+talkButton.addEventListener('click',interact);interactButton.addEventListener('click',()=>{if(nearest)interact();else{hint.textContent='Közelíts egy városlakóhoz az interakcióhoz.';hint.style.opacity='1';setTimeout(()=>hint.style.opacity='.72',1500);}});
+
+// Virtual joystick (Pointer Events work with touch and mouse)
+let stickPointer=null;
+function setStick(e){const r=joystick.getBoundingClientRect();const cx=r.left+r.width/2,cy=r.top+r.height/2;let dx=e.clientX-cx,dy=e.clientY-cy;const max=r.width*.34;const len=Math.hypot(dx,dy);if(len>max){dx=dx/len*max;dy=dy/len*max;}input.x=dx/max;input.y=dy/max;stick.style.left=`calc(50% + ${dx}px)`;stick.style.top=`calc(50% + ${dy}px)`;}
+joystick.addEventListener('pointerdown',e=>{e.preventDefault();stickPointer=e.pointerId;joystick.setPointerCapture(e.pointerId);setStick(e);});
+joystick.addEventListener('pointermove',e=>{if(e.pointerId===stickPointer){e.preventDefault();setStick(e);}});
+function releaseStick(e){if(stickPointer===e.pointerId){stickPointer=null;input.x=0;input.y=0;stick.style.left='50%';stick.style.top='50%';}}
+joystick.addEventListener('pointerup',releaseStick);joystick.addEventListener('pointercancel',releaseStick);joystick.addEventListener('lostpointercapture',()=>{stickPointer=null;input.x=0;input.y=0;stick.style.left='50%';stick.style.top='50%';});
+
+// Right-side drag rotates the camera; short taps select an NPC.
+let activeLookPointer=null;
+canvas.addEventListener('pointerdown',e=>{if(!gameStarted||e.clientX<window.innerWidth*.38)return;activeLookPointer=e.pointerId;input.drag=true;input.dragMoved=false;input.lastX=e.clientX;input.lastY=e.clientY;canvas.setPointerCapture(e.pointerId);});
+canvas.addEventListener('pointermove',e=>{if(activeLookPointer!==e.pointerId)return;const dx=e.clientX-input.lastX,dy=e.clientY-input.lastY;if(Math.abs(dx)+Math.abs(dy)>2)input.dragMoved=true;cameraYaw-=dx*.006;cameraHeight=THREE.MathUtils.clamp(cameraHeight+dy*.018,4.5,9.8);input.lastX=e.clientX;input.lastY=e.clientY;});
+canvas.addEventListener('pointerup',e=>{if(activeLookPointer!==e.pointerId)return;if(!input.dragMoved){const rect=canvas.getBoundingClientRect();const ndc=new THREE.Vector2((e.clientX/rect.width)*2-1,-(e.clientY/rect.height)*2+1);const ray=new THREE.Raycaster();ray.setFromCamera(ndc,camera);const hit=ray.intersectObjects(npcs.map(n=>n.model),true)[0];if(hit){let obj=hit.object;while(obj.parent&&!npcs.some(n=>n.model===obj))obj=obj.parent;const found=npcs.find(n=>n.model===obj);if(found){const d=player.position.distanceTo(found.model.position);if(d<6.2)openNpc(found);else hint.textContent='Menj közelebb '+found.name+' karakteréhez!';}}}activeLookPointer=null;input.drag=false;});
+canvas.addEventListener('pointercancel',()=>{activeLookPointer=null;input.drag=false;});
+
+window.addEventListener('keydown',e=>{input.keys[e.code]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();if(e.code==='KeyE'||e.code==='Enter')interact();if(e.code==='Escape')closeNpc();});
+window.addEventListener('keyup',e=>input.keys[e.code]=false);
+
+function startGame(){gameStarted=true;startScreen.style.display='none';renderer.setAnimationLoop(animate);}
+document.querySelector('#startButton').addEventListener('click',startGame);
+
+function animate(){const dt=Math.min(clock.getDelta(),.04);const t=clock.elapsedTime;
+  let mx=input.x,my=input.y;
+  if(input.keys.KeyA||input.keys.ArrowLeft)mx-=1;if(input.keys.KeyD||input.keys.ArrowRight)mx+=1;if(input.keys.KeyW||input.keys.ArrowUp)my-=1;if(input.keys.KeyS||input.keys.ArrowDown)my+=1;
+  const magnitude=Math.hypot(mx,my);if(magnitude>1){mx/=magnitude;my/=magnitude;}
+  const forward=new THREE.Vector3(-Math.sin(cameraYaw),0,-Math.cos(cameraYaw));const right=new THREE.Vector3(Math.cos(cameraYaw),0,-Math.sin(cameraYaw));
+  const move=new THREE.Vector3().addScaledVector(right,mx).addScaledVector(forward,-my);
+  const moving=move.lengthSq()>.015;
+  if(moving){move.normalize();const sprint=input.keys.ShiftLeft||input.keys.ShiftRight;const speed=sprint?7.0:4.5;player.position.addScaledVector(move,speed*dt);player.position.x=THREE.MathUtils.clamp(player.position.x,-24,24);player.position.z=THREE.MathUtils.clamp(player.position.z,-25,25);const desiredAngle=Math.atan2(move.x,move.z);let diff=((desiredAngle-player.rotation.y+Math.PI*3)%(Math.PI*2))-Math.PI;player.rotation.y+=diff*Math.min(1,dt*12);walkingTime+=dt*(sprint?13:9);}else{walkingTime*=Math.max(0,1-dt*5);}
+  const limbs=player.userData;limbs.leftArm.rotation.x=Math.sin(walkingTime)*.55;limbs.rightArm.rotation.x=-Math.sin(walkingTime)*.55;limbs.leftLeg.rotation.x=-Math.sin(walkingTime)*.58;limbs.rightLeg.rotation.x=Math.sin(walkingTime)*.58;player.position.y=moving?Math.abs(Math.sin(walkingTime*2))*.055:Math.sin(t*1.8)*.012;
+  npcs.forEach((n,i)=>{n.model.position.y=Math.sin(t*1.6+n.phase)*.025;n.model.rotation.y=Math.sin(t*.45+n.phase)*.12;const u=n.model.userData;u.leftArm.rotation.x=Math.sin(t*1.25+n.phase)*.08;u.rightArm.rotation.x=-Math.sin(t*1.15+n.phase)*.08;});
+  lanternLights.forEach((l,i)=>{l.intensity=1.35+Math.sin(t*2+i)*.12;});
+  updateCamera(dt);camera.aspect=window.innerWidth/window.innerHeight;camera.updateProjectionMatrix();renderer.render(scene,camera);
+  nearestRefresh += dt; if(nearestRefresh > 0.22){nearestRefresh = 0; updateNearest();}
+}
+
+window.addEventListener('resize',()=>{renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));renderer.setSize(window.innerWidth,window.innerHeight,false);camera.aspect=window.innerWidth/window.innerHeight;camera.updateProjectionMatrix();});
+window.addEventListener('orientationchange',()=>setTimeout(()=>{renderer.setSize(window.innerWidth,window.innerHeight,false);camera.aspect=window.innerWidth/window.innerHeight;camera.updateProjectionMatrix();},180));
+
+// Display the active backend and keep the renderer modest on phones.
+document.querySelector('#quality').textContent = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ? 'MOBIL · ADAPTÍV' : 'DESKTOP · WEBGL2';
+</script>
+</body>
+</html>
